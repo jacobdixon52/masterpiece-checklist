@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masterpiece — Scope Checklist Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0f0f0f;
+    color: #e8e4dc;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .container { width: 100%; max-width: 580px; }
+
+  .header { margin-bottom: 32px; }
+
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: #c8a96e;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #f0ebe0;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .subtitle { font-size: 14px; color: #888; font-weight: 300; }
+
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  .step-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #c8a96e;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #2a2a2a;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e8e4dc;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+
+  input[type="text"]:focus { border-color: #c8a96e; }
+  input[type="text"]::placeholder { color: #444; }
+
+  .file-drop {
+    border: 1px dashed #333;
+    border-radius: 8px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #111;
+    position: relative;
+  }
+
+  .file-drop:hover, .file-drop.dragover {
+    border-color: #c8a96e;
+    background: #161410;
+  }
+
+  .file-drop input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .file-icon { font-size: 28px; margin-bottom: 10px; }
+
+  .file-drop p { font-size: 13px; color: #666; }
+  .file-drop p span { color: #c8a96e; }
+
+  .file-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #c8a96e;
+    margin-top: 10px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-primary { background: #c8a96e; color: #0f0f0f; }
+  .btn-primary:hover:not(:disabled) { background: #d4b87a; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-google { background: #fff; color: #333; border: 1px solid #ddd; margin-bottom: 4px; }
+  .btn-google:hover { background: #f5f5f5; transform: translateY(-1px); }
+
+  .auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: #0d2010;
+    border: 1px solid #1a4a20;
+    color: #5cb870;
+  }
+
+  .status {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .status.success { background: #0d2010; border: 1px solid #1a4a20; color: #5cb870; display: block; }
+  .status.error { background: #200d0d; border: 1px solid #4a1a1a; color: #e07070; display: block; }
+  .status.loading { background: #161410; border: 1px solid #3a2e1a; color: #c8a96e; display: block; }
+
+  .doc-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #c8a96e;
+    text-decoration: none;
+    font-weight: 500;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .doc-link:hover { text-decoration: underline; }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(200,169,110,0.3);
+    border-top-color: #c8a96e;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hint { font-size: 11px; color: #555; margin-top: 6px; font-family: 'DM Mono', monospace; }
+
+  .progress-bar {
+    height: 3px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #c8a96e;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">Masterpiece Construction</div>
+    <h1>Scope Checklist<br>Generator</h1>
+    <p class="subtitle">Upload a proposal CSV → instantly creates a Google Doc with native checkboxes</p>
+  </div>
+
+  <!-- Step 1: Auth -->
+  <div class="card">
+    <div class="step-label">Step 1 — Google Authorization</div>
+    <div id="authSection">
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Sign in once to authorize this tool to create Docs in your Drive.</p>
+      <button class="btn btn-google" onclick="signIn()">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p class="hint">→ A Google sign-in popup will open in a new window</p>
+    </div>
+    <div id="authedSection" style="display:none;">
+      <div class="auth-badge">
+        <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#5cb870"/></svg>
+        <span id="authedEmail">Connected</span>
+      </div>
+      <p style="font-size:12px;color:#555;margin-top:8px;">Token is saved for this session. Re-open the file to sign in again next time.</p>
+    </div>
+  </div>
+
+  <!-- Step 2: Upload -->
+  <div class="card">
+    <div class="step-label">Step 2 — Upload Proposal CSV</div>
+    <div class="file-drop" id="fileDrop">
+      <input type="file" accept=".csv" id="csvFile" onchange="handleFile(this)">
+      <div class="file-icon">📄</div>
+      <p>Drop your CSV here or <span>browse</span></p>
+      <div class="file-name" id="fileName"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: Generate -->
+  <div class="card">
+    <div class="step-label">Step 3 — Generate</div>
+    <label>Google Doc Title</label>
+    <input type="text" id="docTitle" placeholder="e.g. Ostlund Proposal — Scope Checklist" />
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()" disabled>
+      Generate Checklist Doc
+    </button>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '523847938230-epfu0mcoi34p6qjgsvci3qko976p31at.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
+
+let accessToken = null;
+let csvData = null;
+
+function signIn() {
+  const redirectUri = window.location.href.split('?')[0].split('#')[0];
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+    'client_id=' + encodeURIComponent(CLIENT_ID) +
+    '&redirect_uri=' + encodeURIComponent(redirectUri) +
+    '&response_type=token' +
+    '&scope=' + encodeURIComponent(SCOPES) +
+    '&prompt=consent';
+
+  const popup = window.open(authUrl, 'googleAuth', 'width=520,height=620,left=200,top=80');
+
+  if (!popup) {
+    alert('Popup was blocked. Please allow popups for this file and try again.');
+    return;
+  }
+
+  const timer = setInterval(() => {
+    try {
+      if (popup.closed) { clearInterval(timer); return; }
+      const url = popup.location.href;
+      if (url.includes('access_token')) {
+        clearInterval(timer);
+        popup.close();
+        const fragment = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+        const params = new URLSearchParams(fragment);
+        accessToken = params.get('access_token');
+        if (accessToken) onAuthed();
+      }
+    } catch(e) {}
+  }, 400);
+}
+
+arsync function onAuthed() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const info = await res.json();
+    document.getElementById('authedEmail').textContent = info.email || 'Connected';
+  } catch(e) {}
+  document.getElementById('authSection').style.display = 'none';
+  document.getElementById('authedSection').style.display = 'block';
+  checkReady();
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = '✓ ' + file.name;
+  const baseName = file.name.replace('.csv', '').replace(/_/g, ' ');
+  if (!document.getElementById('docTitle').value) {
+    document.getElementById('docTitle').value = baseName + ' — Scope Checklist';
+  }
+  const reader = new FileReader();
+  reader.onload = e => { csvData = e.target.result; checkReady(); };
+  reader.readAsText(file);
+}
+
+function checkReady() {
+  document.getElementById('generateBtn').disabled = !(accessToken && csvData);
+}
+
+function parseCSVToSections(text) {
+  const lines = text.split('\n');
+  const sections = {};
+  const sectionOrder = [];
+  let currentSection = null;
+
+  const sectionMap = [
+    { key: 'Electrical & Lighting', terms: ['led','light','electric','outlet','ev charger','charger','downrod','dimmer','switch','wiring','fixture','circuit'] },
+    { key: 'Cabinetry & Millwork', terms: ['cabinet','drybar','shelf','shelving','floating shelf','baking','murphy','banquette','loft ladder','vertical','drawer','built-in','millwork','framing','shiplap'] },
+    { key: 'Flooring', terms: ['floor','lvp','hardwood','laminate','stair','transition','subfloor'] },
+    { key: 'Fireplace & Masonry', terms: ['plaster','masonry','brick','stone',"veneer','fireplace','firebox','flue'] },
+    { key: 'Demo', terms: ['demo','demolition','removal','haul'] },
+    { key: 'Doo2s', terms: ['door','iron door','metal door'] },
+    { key: 'Painting & Wall Finishes', terms: ['paint','board and batten','board & batten','accent wall','shiplap','drywall','wall patch'] },
+    { key: 'Countertops & Tile', terms: ['countertop','backsplash','tile','grout'] },
+    { key: 'Plumbing', terms: ['shower','faucet','plumb','sink','washer','dryer','water','drain','rough-in','ice maker'] },
+    { key: 'Hardware', terms: ['hardware','pull','knob','hinge','railing'] },
+    { key: 'Structural & Finishes', terms: ['trim','baseboard','framing','drywall repair','wall patch','repair'] },
+    { key: 'Project Administration', terms: ['layout','elevation','project development','selections schedule','coordination','permit'] },
+  ];
+
+  function detectSection(name) {
+    const lower = name.toLowerCase();
+    for (const s of sectionMap) {
+      if (s.terms.some(t => lower.includes(t))) return s.key;
+    }
+    return null;
+  }
+
+  for (const line of lines) {
+    const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+    const name = (cols[1] || '').trim().replace(/^"|"$/g, '').trim();
+    const desc = (cols[4] || cols[3] || '').trim().replace(/^"|"$/g, '').trim();
+    const qty = (cols[6] || '').trim().replace(/^"|"$/g, '').trim();
+    const unit = (cols[7] || '').trim().replace(/^"|"$/g, '').trim();
+
+    if (!name || name === 'Cost Item Name' || name === '') continue;
+
+    const detected = detectSection(name);
+    if (detected) currentSection = detected;
+    if (!currentSection) currentSection = 'General';
+
+    if (!sections[currentSection]) {
+      sections[currentSection] = [];
+      sectionOrder.push(currentSection);
+    }
+
+    let itemText = name;
+    if (qty && qty !== '0' && qty !== '') {
+      itemText += ' — ' + qty + (unit ? ' ' + unit : '');
+    }
+
+    sections[currentSection].push({ text: itemText, note: desc });
+  }
+
+  return { sections, sectionOrder };
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.display = 'block';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+async function apiCall(url, method, body) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+arsync function batchUpdate(docId, requests) {
+  const size = 40;
+  for (let i = 0; i < requests.length; i += size) {
+    await apiCall('https://docs.googleapis.com/v1/documents/' + docId + ':batchUpdate', 'POST', { requests: requests.slice(i, i + size) });
+    setProgress(30 + Math.round((i / requests.length) * 65));
+  }
+}
+
+arsync function generate() {
+  const btn = document.getElementById('generateBtn');
+  const status = document.getElementById('status');
+  const title = document.getElementById('docTitle').value.trim() || 'Scope Review Checklist';
+  btn.disabled = true;
+  status.className = 'status loading';
+  status.innerHTML = '<span class="spinner"></span>&nbsp; Parsing CSV...';
+  setProgress(5);
+  const { sections, sectionOrder } = parseCSVToSections(csvData);
+  status.innerHTML = '<span class="spinner"></span>&nbsp; Creating Google Doc...';
+  setProgress(15);
+  try {
+    const doc = await apiCall('https://docs.googleapis.com/v1/documents', 'POST', { title });
+    const docId = doc.documentId;
+    setProgress(25);
+    status.innerHTML = '<span class="spinner"></span>&nbsp; Writing content...';
+    const requests = [];
+    let idx = 1;
+    function ins(text) { requests.push({ insertText: { location: { index: idx }, text } }); idx += text.length; }
+    function styleHeading(start, end, level) { requests.push({ updateParagraphStyle: { range: { startIndex: start, endIndex: end }, paragraphStyle: { namedStyleType: level }, fields: 'namedStyleType' } }); }
+    function styleText(start, end, opts) { requests.push({ updateTextStyle: { range: { startIndex: start, endIndex: end }, textStyle: opts, fields: Object.keys(opts).join(',') } }); }
+    function addChecklist(start, end) { requests.push({ createParagraphBullets: { range: { startIndex: start, endIndex: end }, bulletPreset: 'BULLET_CHECKBOX' } }); }
+    const tStart = idx; ins(title + '\n'); styleHeading(tStart, idx, 'HEADING_1');
+    const sStart = idx; ins('Check off each item when confirmed or resolved before sending.\n\n');
+    styleText(sStart, idx, { foregroundColor: { color: { rgbColor: { red: 0.5, green: 0.5, blue: 0.5 } } }, italic: true, fontSize: { magnitude: 11, unit: 'PT' } });
+    for (const sectionName of sectionOrder) {
+      const items = sections[sectionName];
+      if (!items || items.length === 0) continue;
+      const secStart = idx; ins(sectionName + '\n'); styleHeading(secStart, idx, 'HEADING_2');
+      for (const item of items) {
+        const iStart = idx; ins(item.text + '\n'); addChecklist(iStart, idx);
+        if (item.note && item.note.length > 4) {
+          const nStart = idx;
+          const nt = item.note.length > 200 ? item.note.substring(0,200) + '…' : item.note;
+          ins(nt + '\n');
+          styleText(nStart, idx, { foregroundColor: { color: { rgbColor: { red: 0.55, green: 0.55, blue: 0.55 } } }, italic: true, fontSize: { magnitude: 10, unit: 'PT' } });
+          requests.push({ updateParagraphStyle: { range: { startIndex: nStart, endIndex: idx }, paragraphStyle: { indentFirstLine: { magnitude: 18, unit: 'PT' }, indentStart: { magnitude: 18, unit: 'PT' } }, fields: 'indentFirstLine,indentStart' } });
+        }
+      }
+      ins('\n');
+    }
+    await batchUpdate(docId, requests);
+    setProgress(100);
+    const url = 'https://docs.google.com/document/d/' + docId + '/edit';
+    status.className = 'status success';
+    status.innerHTML = '✓ Checklist created!<br><a class="doc-link" href="' + url + '" target="_blank">ↂ Open Google Doc</a>';
+    btn.disabled = false;
+  } catch(err) {
+    status.className = 'status error';
+    status.innerHTML = '✗ ' + err.message;
+    btn.disabled = false;
+    setProgress(0);
+    document.getElementById('progressBar').style.display = 'none';
+  }
+}
+
+const drop = document.getElementById('fileDrop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = '✓ ' + file.name;
+  if (!document.getElementById('docTitle').value) { document.getElementById('docTitle').value = file.name.replace('.csv','').replace(/_/g,' ') + ' — Scope Checklist'; }
+  const reader = new FileReader();
+  reader.onload = ev => { csvData = ev.target.result; checkReady(); };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
