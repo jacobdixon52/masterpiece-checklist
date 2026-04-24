@@ -117,7 +117,7 @@ function signIn() {
     + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
     + '&response_type=token'
     + '&scope=' + encodeURIComponent(SCOPES)
-    + '&prompt=consent';
+    + '&prompt=select_account';
 
   const popup = window.open(authUrl, 'googleAuth', 'width=520,height=620,left=200,top=80');
 
