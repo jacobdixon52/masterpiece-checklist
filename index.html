@@ -269,7 +269,7 @@ async function generate() {
     function styleText(s, e, opts) { reqs.push({ updateTextStyle: { range: { startIndex: s, endIndex: e }, textStyle: opts, fields: Object.keys(opts).join(',') } }); }
     function addCheckbox(s, e) { reqs.push({ createParagraphBullets: { range: { startIndex: s, endIndex: e }, bulletPreset: 'BULLET_CHECKBOX' } }); }
     const tS = idx; ins(title + '\n'); styleHeading(tS, idx, 'HEADING_1');
-    const subS = idx; ins('Check off each item when confirmed or resolved before sending.\n\n');
+    const subS = idx; ins('Check off each item when confirmed or resolved before sending.\n\n');
     styleText(subS, idx, { foregroundColor: { color: { rgbColor: { red: 0.5, green: 0.5, blue: 0.5 } } }, italic: true, fontSize: { magnitude: 11, unit: 'PT' } });
     for (var oi = 0; oi < parsed.order.length; oi++) {
       const sectionName = parsed.order[oi];
