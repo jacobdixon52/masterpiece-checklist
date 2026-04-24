@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masterpiece ‚Äî Scope Checklist Generator</title>
+<title>Masterpiece — Scope Checklist Generator</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,7 +32,7 @@
   .btn-primary:hover:not(:disabled) { background: #d4b87a; transform: translateY(-1px); }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   .btn-google { background: #fff; color: #333; border: 1px solid #ddd; margin-bottom: 4px; }
-  .btn-google:hover { background: #f5f5f5; }
+  .btn-google:hover { background: #f5f5f5; transform: translateY(-1px); }
   .auth-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 12px; border-radius: 20px; background: #0d2010; border: 1px solid #1a4a20; color: #5cb870; }
   .status { margin-top: 16px; padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 1.6; display: none; }
   .status.success { background: #0d2010; border: 1px solid #1a4a20; color: #5cb870; display: block; }
@@ -59,7 +59,7 @@
     <div class="step-label">Step 1 &mdash; Google Authorization</div>
     <div id="authSection">
       <p style="font-size:13px;color:#888;margin-bottom:16px;">Sign in once to authorize this tool to create Docs in your Drive.</p>
-      <button class="btn btn-google" id="signInBtn">
+      <button class="btn btn-google" onclick="signIn()">
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -68,14 +68,14 @@
         </svg>
         Sign in with Google
       </button>
-      <p class="hint">&rarr; A Google sign-in window will open</p>
+      <p class="hint">&rarr; A Google sign-in popup will open in a new window</p>
     </div>
     <div id="authedSection" style="display:none;">
       <div class="auth-badge">
         <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#5cb870"/></svg>
         <span id="authedEmail">Connected</span>
       </div>
-      <p style="font-size:12px;color:#555;margin-top:8px;">Signed in for this session. Refresh to sign in again.</p>
+      <p style="font-size:12px;color:#555;margin-top:8px;">Signed in for this session. Refresh the page to sign in again.</p>
     </div>
   </div>
 
@@ -104,64 +104,76 @@
 </div>
 
 <script>
-var CLIENT_ID = '523847938230-epfu0mcoi34p6qjgsvci3qko976p31at.apps.googleusercontent.com';
-var REDIRECT_URI = 'https://jacobdixon52.github.io/masterpiece-checklist/';
-var SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
-var AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
-  + '?client_id=' + encodeURIComponent(CLIENT_ID)
-  + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
-  + '&response_type=token'
-  + '&scope=' + encodeURIComponent(SCOPES)
-  + '&prompt=select_account';
+const CLIENT_ID = '523847938230-epfu0mcoi34p6qjgsvci3qko976p31at.apps.googleusercontent.com';
+const REDIRECT_URI = 'https://jacobdixon52.github.io/masterpiece-checklist/';
+const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
 
-var accessToken = null;
-var csvData = null;
-var pollTimer = null;
+let accessToken = null;
+let csvData = null;
 
-// Safari fix: window.open must be the VERY first thing in the click handler.
-document.getElementById('signInBtn').addEventListener('click', function() {
-  var popup = window.open(AUTH_URL, 'googleAuth', 'width=520,height=620,left=200,top=80');
+function signIn() {
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+    + '?client_id=' + encodeURIComponent(CLIENT_ID)
+    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
+    + '&response_type=token'
+    + '&scope=' + encodeURIComponent(SCOPES)
+    + '&prompt=consent';
+
+  const popup = window.open(authUrl, 'googleAuth', 'width=520,height=620,left=200,top=80');
+
   if (!popup) {
-    alert('Popup blocked. Please allow popups for this site in Safari Preferences > Websites > Pop-up Windows, then try again.');
+    alert('Popup was blocked. Please allow popups for this site in your browser and try again.');
     return;
   }
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(function() {
-    try {
-      if (popup.closed) { clearInterval(pollTimer); return; }
-      var url = popup.location.href;
-      if (url.indexOf('access_token') !== -1) {
-        clearInterval(pollTimer);
-        popup.close();
-        var hash = url.indexOf('#') !== -1 ? url.split('#')[1] : url.split('?')[1];
-        var params = new URLSearchParams(hash);
-        accessToken = params.get('access_token');
-        if (accessToken) onAuthed();
-      }
-    } catch(e) {}
-  }, 400);
-});
 
-function onAuthed() {
-  fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-    headers: { 'Authorization': 'Bearer ' + accessToken }
-  }).then(function(r) { return r.json(); }).then(function(info) {
+  const timer = setInterval(function() {
+    try {
+      if (popup.closed) {
+        clearInterval(timer);
+        return;
+      }
+      const url = popup.location.href;
+      if (url.indexOf('access_token') !== -1) {
+        clearInterval(timer);
+        popup.close();
+        const hash = url.indexOf('#') !== -1 ? url.split('#')[1] : url.split('?')[1];
+        const params = new URLSearchParams(hash);
+        accessToken = params.get('access_token');
+        if (accessToken) {
+          onAuthed();
+        }
+      }
+    } catch(e) {
+      // cross-origin - keep polling
+    }
+  }, 400);
+}
+
+async function onAuthed() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const info = await res.json();
     document.getElementById('authedEmail').textContent = info.email || 'Connected';
-  }).catch(function() {});
+  } catch(e) {}
   document.getElementById('authSection').style.display = 'none';
   document.getElementById('authedSection').style.display = 'block';
   checkReady();
 }
 
 function handleFile(input) {
-  var file = input.files[0];
+  const file = input.files[0];
   if (!file) return;
   document.getElementById('fileName').textContent = '\u2713 ' + file.name;
   if (!document.getElementById('docTitle').value) {
     document.getElementById('docTitle').value = file.name.replace('.csv', '').replace(/_/g, ' ') + ' \u2014 Scope Checklist';
   }
-  var reader = new FileReader();
-  reader.onload = function(e) { csvData = e.target.result; checkReady(); };
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    csvData = e.target.result;
+    checkReady();
+  };
   reader.readAsText(file);
 }
 
@@ -170,9 +182,12 @@ function checkReady() {
 }
 
 function parseCSV(text) {
-  var lines = text.split('\n');
-  var sections = {}, order = [], current = null;
-  var map = [
+  const lines = text.split('\n');
+  const sections = {};
+  const order = [];
+  let current = null;
+
+  const map = [
     { key: 'Electrical & Lighting', terms: ['led','light','electric','outlet','ev charger','charger','downrod','dimmer','switch','wiring','fixture','circuit'] },
     { key: 'Cabinetry & Millwork', terms: ['cabinet','drybar','shelf','shelving','floating shelf','baking','murphy','banquette','loft ladder','vertical','drawer','built-in','millwork','framing','shiplap'] },
     { key: 'Flooring', terms: ['floor','lvp','hardwood','laminate','stair','transition','subfloor'] },
@@ -184,29 +199,39 @@ function parseCSV(text) {
     { key: 'Plumbing', terms: ['shower','faucet','plumb','sink','washer','dryer','water','drain','rough-in','ice maker'] },
     { key: 'Hardware', terms: ['hardware','pull','knob','hinge','railing'] },
     { key: 'Structural & Finishes', terms: ['trim','baseboard','drywall repair','wall patch','repair'] },
-    { key: 'Project Administration', terms: ['layout','elevation','project development','selections schedule','coordination','permit'] }
-  C].   function detect(name) {
-    var l = name.toLowerCase();
-    for (var i = 0; i < map.length; i++)
-      for (var j = 0; j < map[i].terms.length; j++)
+    { key: 'Project Administration', terms: ['layout','elevation','project development','selections schedule','coordination','permit'] },
+  ];
+
+  function detect(name) {
+    const l = name.toLowerCase();
+    for (var i = 0; i < map.length; i++) {
+      for (var j = 0; j < map[i].terms.length; j++) {
         if (l.indexOf(map[i].terms[j]) !== -1) return map[i].key;
+      }
+    }
     return null;
   }
+
   for (var i = 0; i < lines.length; i++) {
-    var cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-    var name = (cols[1] || '').trim().replace(/^"|"$/g, '').trim();
-    var desc = (cols[4] || cols[3] || '').trim().replace(/^"|"$/g, '').trim();
-    var qty  = (cols[6] || '').trim().replace(/^"|"$/g, '').trim();
-    var unit = (cols[7] || '').trim().replace(/^"|"$/g, '').trim();
+    const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+    const name = (cols[1] || '').trim().replace(/^"|"$/g, '').trim();
+    const desc = (cols[4] || cols[3] || '').trim().replace(/^"|"$/g, '').trim();
+    const qty  = (cols[6] || '').trim().replace(/^"|"$/g, '').trim();
+    const unit = (cols[7] || '').trim().replace(/^"|"$/g, '').trim();
+
     if (!name || name === 'Cost Item Name') continue;
-    var d = detect(name);
+
+    const d = detect(name);
     if (d) current = d;
     if (!current) current = 'General';
+
     if (!sections[current]) { sections[current] = []; order.push(current); }
-    var txt = name;
-    if (qty && qty !== '0' && qty !== '') txt += ' \u2014 ' + qty + (unit ? ' ' + unit : '');
-    sections[current].push({ text: txt, note: desc });
+
+    let text = name;
+    if (qty && qty !== '0' && qty !== '') text += ' \u2014 ' + qty + (unit ? ' ' + unit : '');
+    sections[current].push({ text: text, note: desc });
   }
+
   return { sections: sections, order: order };
 }
 
@@ -215,98 +240,128 @@ function setProgress(pct) {
   document.getElementById('progressFill').style.width = pct + '%';
 }
 
-function apiCall(url, method, body) {
-  return fetch(url, {
+async function apiCall(url, method, body) {
+  const res = await fetch(url, {
     method: method,
-    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    },
     body: body ? JSON.stringify(body) : undefined
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-    return data;
   });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  return data;
 }
 
-function generate() {
-  var btn = document.getElementById('generateBtn');
-  var status = document.getElementById('status');
-  var title = document.getElementById('docTitle').value.trim() || 'Scope Review Checklist';
+async function generate() {
+  const btn = document.getElementById('generateBtn');
+  const status = document.getElementById('status');
+  const title = document.getElementById('docTitle').value.trim() || 'Scope Review Checklist';
+
   btn.disabled = true;
   status.className = 'status loading';
   status.innerHTML = '<span class="spinner"></span>&nbsp; Parsing CSV...';
   setProgress(5);
-  var parsed = parseCSV(csvData);
+
+  const parsed = parseCSV(csvData);
   status.innerHTML = '<span class="spinner"></span>&nbsp; Creating Google Doc...';
   setProgress(15);
-  apiCall('https://docs.googleapis.com/v1/documents', 'POST', { title: title })
-  .then(function(doc) {
-    var docId = doc.documentId;
+
+  try {
+    const doc = await apiCall('https://docs.googleapis.com/v1/documents', 'POST', { title: title });
+    const docId = doc.documentId;
     setProgress(25);
+
     status.innerHTML = '<span class="spinner"></span>&nbsp; Writing content...';
-    var reqs = [], idx = 1;
-    function ins(t) { reqs.push({ insertText: { location: { index: idx }, text: t } }); idx += t.length; }
-    function sH(s, e, lv) { reqs.push({ updateParagraphStyle: { range: { startIndex: s, endIndex: e }, paragraphStyle: { namedStyleType: lv }, fields: 'namedStyleType' } }); }
-    function sT(s, e, opts) { reqs.push({ updateTextStyle: { range: { startIndex: s, endIndex: e }, textStyle: opts, fields: Object.keys(opts).join(',') } }); }
-    function aC(s, e) { reqs.push({ createParagraphBullets: { range: { startIndex: s, endIndex: e }, bulletPreset: 'BULLET_CHECKBOX' } }); }
-    var tS = idx; ins(title + '\n'); sH(tS, idx, 'HEADING_1');
-    var subS = idx; ins('Check off each item when confirmed or resolved before sending.\n\n');
-    sT(subS, idx, { foregroundColor: { color: { rgbColor: { red: 0.5, green: 0.5, blue: 0.5 } } }, italic: true, fontSize: { magnitude: 11, unit: 'PT' } });
+
+    const reqs = [];
+    let idx = 1;
+
+    function ins(t) {
+      reqs.push({ insertText: { location: { index: idx }, text: t } });
+      idx += t.length;
+    }
+
+    function styleHeading(s, e, level) {
+      reqs.push({ updateParagraphStyle: { range: { startIndex: s, endIndex: e }, paragraphStyle: { namedStyleType: level }, fields: 'namedStyleType' } });
+    }
+
+    function styleText(s, e, opts) {
+      reqs.push({ updateTextStyle: { range: { startIndex: s, endIndex: e }, textStyle: opts, fields: Object.keys(opts).join(',') } });
+    }
+
+    function addCheckbox(s, e) {
+      reqs.push({ createParagraphBullets: { range: { startIndex: s, endIndex: e }, bulletPreset: 'BULLET_CHECKBOX' } });
+    }
+
+    const tS = idx;
+    ins(title + '\n');
+    styleHeading(tS, idx, 'HEADING_1');
+
+    const subS = idx;
+    ins('Check off each item when confirmed or resolved before sending.\n\n');
+    styleText(subS, idx, { foregroundColor: { color: { rgbColor: { red: 0.5, green: 0.5, blue: 0.5 } } }, italic: true, fontSize: { magnitude: 11, unit: 'PT' } });
+
     for (var oi = 0; oi < parsed.order.length; oi++) {
-      var sn = parsed.order[oi], items = parsed.sections[sn];
-      if (!items || !items.length) continue;
-      var secS = idx; ins(sn + '\n'); sH(secS, idx, 'HEADING_2');
+      const sectionName = parsed.order[oi];
+      const items = parsed.sections[sectionName];
+      if (!items || items.length === 0) continue;
+
+      const secS = idx;
+      ins(sectionName + '\n');
+      styleHeading(secS, idx, 'HEADING_2');
+
       for (var ii = 0; ii < items.length; ii++) {
-        var item = items[ii], iS = idx; ins(item.text + '\n'); aC(iS, idx);
+        const item = items[ii];
+        const itemS = idx;
+        ins(item.text + '\n');
+        addCheckbox(itemS, idx);
+
         if (item.note && item.note.length > 4) {
-          var nS = idx, nt = item.note.length > 200 ? item.note.substring(0, 200) + '\u2026' : item.note;
+          const noteS = idx;
+          const nt = item.note.length > 200 ? item.note.substring(0, 200) + '\u2026' : item.note;
           ins(nt + '\n');
-          sT(nS, idx, { foregroundColor: { color: { rgbColor: { red: 0.55, green: 0.55, blue: 0.55 } } }, italic: true, fontSize: { magnitude: 10, unit: 'PT' } });
-          reqs.push({ updateParagraphStyle: { range: { startIndex: nS, endIndex: idx }, paragraphStyle: { indentFirstLine: { magnitude: 18, unit: 'PT' }, indentStart: { magnitude: 18, unit: 'PT' } }, fields: 'indentFirstLine,indentStart' } });
+          styleText(noteS, idx, { foregroundColor: { color: { rgbColor: { red: 0.55, green: 0.55, blue: 0.55 } } }, italic: true, fontSize: { magnitude: 10, unit: 'PT' } });
+          reqs.push({ updateParagraphStyle: { range: { startIndex: noteS, endIndex: idx }, paragraphStyle: { indentFirstLine: { magnitude: 18, unit: 'PT' }, indentStart: { magnitude: 18, unit: 'PT' } }, fields: 'indentFirstLine,indentStart' } });
         }
       }
       ins('\n');
     }
-    var chunks = [];
-    for (var ci = 0; ci < reqs.length; ci += 40) chunks.push(reqs.slice(ci, ci + 40));
-    var chunkIndex = 0;
-    function sendChunk() {
-      if (chunkIndex >= chunks.length) {
-        setProgress(100);
-        var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
-        status.className = 'status success';
-        status.innerHTML = '\u2713 Checklist created!<br><a class="doc-link" href="' + docUrl + '" target="_blank">&rarr; Open Google Doc</a>';
-        btn.disabled = false;
-        return;
-      }
-      apiCall('https://docs.googleapis.com/v1/documents/' + docId + ':batchUpdate', 'POST', { requests: chunks[chunkIndex] })
-      .then(function() {
-        setProgress(30 + Math.round((chunkIndex / chunks.length) * 65));
-        chunkIndex++;
-        sendChunk();
-      }).catch(function(err) {
-        status.className = 'status error';
-        status.innerHTML = '\u2717 ' + err.message;
-        btn.disabled = false;
-      });
+
+    for (var ci = 0; ci < reqs.length; ci += 40) {
+      await apiCall('https://docs.googleapis.com/v1/documents/' + docId + ':batchUpdate', 'POST', { requests: reqs.slice(ci, ci + 40) });
+      setProgress(30 + Math.round((ci / reqs.length) * 65));
     }
-    sendChunk();
-  }).catch(function(err) {
+
+    setProgress(100);
+    const docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+    status.className = 'status success';
+    status.innerHTML = '\u2713 Checklist created!<br><a class="doc-link" href="' + docUrl + '" target="_blank">&rarr; Open Google Doc</a>';
+    btn.disabled = false;
+
+  } catch(err) {
     status.className = 'status error';
     status.innerHTML = '\u2717 ' + err.message;
     btn.disabled = false;
     setProgress(0);
     document.getElementById('progressBar').style.display = 'none';
-  });
+  }
 }
 
-var drop = document.getElementById('fileDrop');
+const drop = document.getElementById('fileDrop');
 drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.classList.add('dragover'); });
 drop.addEventListener('dragleave', function() { drop.classList.remove('dragover'); });
 drop.addEventListener('drop', function(e) {
-  e.preventDefault(); drop.classList.remove('dragover');
-  var file = e.dataTransfer.files[0]; if (!file) return;
+  e.preventDefault();
+  drop.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
   document.getElementById('fileName').textContent = '\u2713 ' + file.name;
-  if (!document.getElementById('docTitle').value) document.getElementById('docTitle').value = file.name.replace('.csv','').replace(/_/g,' ') + ' \u2014 Scope Checklist';
-  var reader = new FileReader();
+  if (!document.getElementById('docTitle').value) {
+    document.getElementById('docTitle').value = file.name.replace('.csv','').replace(/_/g,' ') + ' \u2014 Scope Checklist';
+  }
+  const reader = new FileReader();
   reader.onload = function(ev) { csvData = ev.target.result; checkReady(); };
   reader.readAsText(file);
 });
