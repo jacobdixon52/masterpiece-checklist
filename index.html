@@ -117,7 +117,7 @@ function signIn() {
     + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
     + '&response_type=token'
     + '&scope=' + encodeURIComponent(SCOPES)
-    + '&prompt=consent';
+    + '&prompt=select_account';
 
   const popup = window.open(authUrl, 'googleAuth', 'width=520,height=620,left=200,top=80');
 
@@ -186,7 +186,6 @@ function parseCSV(text) {
   const sections = {};
   const order = [];
   let current = null;
-
   const map = [
     { key: 'Electrical & Lighting', terms: ['led','light','electric','outlet','ev charger','charger','downrod','dimmer','switch','wiring','fixture','circuit'] },
     { key: 'Cabinetry & Millwork', terms: ['cabinet','drybar','shelf','shelving','floating shelf','baking','murphy','banquette','loft ladder','vertical','drawer','built-in','millwork','framing','shiplap'] },
@@ -201,7 +200,6 @@ function parseCSV(text) {
     { key: 'Structural & Finishes', terms: ['trim','baseboard','drywall repair','wall patch','repair'] },
     { key: 'Project Administration', terms: ['layout','elevation','project development','selections schedule','coordination','permit'] },
   ];
-
   function detect(name) {
     const l = name.toLowerCase();
     for (var i = 0; i < map.length; i++) {
@@ -211,27 +209,21 @@ function parseCSV(text) {
     }
     return null;
   }
-
   for (var i = 0; i < lines.length; i++) {
     const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
     const name = (cols[1] || '').trim().replace(/^"|"$/g, '').trim();
     const desc = (cols[4] || cols[3] || '').trim().replace(/^"|"$/g, '').trim();
     const qty  = (cols[6] || '').trim().replace(/^"|"$/g, '').trim();
     const unit = (cols[7] || '').trim().replace(/^"|"$/g, '').trim();
-
     if (!name || name === 'Cost Item Name') continue;
-
     const d = detect(name);
     if (d) current = d;
     if (!current) current = 'General';
-
     if (!sections[current]) { sections[current] = []; order.push(current); }
-
     let text = name;
     if (qty && qty !== '0' && qty !== '') text += ' \u2014 ' + qty + (unit ? ' ' + unit : '');
     sections[current].push({ text: text, note: desc });
   }
-
   return { sections: sections, order: order };
 }
 
@@ -240,7 +232,7 @@ function setProgress(pct) {
   document.getElementById('progressFill').style.width = pct + '%';
 }
 
-async function apiCall(url, method, body) {
+arsync function apiCall(url, method, body) {
   const res = await fetch(url, {
     method: method,
     headers: {
@@ -258,69 +250,38 @@ async function generate() {
   const btn = document.getElementById('generateBtn');
   const status = document.getElementById('status');
   const title = document.getElementById('docTitle').value.trim() || 'Scope Review Checklist';
-
   btn.disabled = true;
   status.className = 'status loading';
   status.innerHTML = '<span class="spinner"></span>&nbsp; Parsing CSV...';
   setProgress(5);
-
   const parsed = parseCSV(csvData);
   status.innerHTML = '<span class="spinner"></span>&nbsp; Creating Google Doc...';
   setProgress(15);
-
   try {
     const doc = await apiCall('https://docs.googleapis.com/v1/documents', 'POST', { title: title });
     const docId = doc.documentId;
     setProgress(25);
-
     status.innerHTML = '<span class="spinner"></span>&nbsp; Writing content...';
-
     const reqs = [];
     let idx = 1;
-
-    function ins(t) {
-      reqs.push({ insertText: { location: { index: idx }, text: t } });
-      idx += t.length;
-    }
-
-    function styleHeading(s, e, level) {
-      reqs.push({ updateParagraphStyle: { range: { startIndex: s, endIndex: e }, paragraphStyle: { namedStyleType: level }, fields: 'namedStyleType' } });
-    }
-
-    function styleText(s, e, opts) {
-      reqs.push({ updateTextStyle: { range: { startIndex: s, endIndex: e }, textStyle: opts, fields: Object.keys(opts).join(',') } });
-    }
-
-    function addCheckbox(s, e) {
-      reqs.push({ createParagraphBullets: { range: { startIndex: s, endIndex: e }, bulletPreset: 'BULLET_CHECKBOX' } });
-    }
-
-    const tS = idx;
-    ins(title + '\n');
-    styleHeading(tS, idx, 'HEADING_1');
-
-    const subS = idx;
-    ins('Check off each item when confirmed or resolved before sending.\n\n');
+    function ins(t) { reqs.push({ insertText: { location: { index: idx }, text: t } }); idx += t.length; }
+    function styleHeading(s, e, level) { reqs.push({ updateParagraphStyle: { range: { startIndex: s, endIndex: e }, paragraphStyle: { namedStyleType: level }, fields: 'namedStyleType' } }); }
+    function styleText(s, e, opts) { reqs.push({ updateTextStyle: { range: { startIndex: s, endIndex: e }, textStyle: opts, fields: Object.keys(opts).join(',') } }); }
+    function addCheckbox(s, e) { reqs.push({ createParagraphBullets: { range: { startIndex: s, endIndex: e }, bulletPreset: 'BULLET_CHECKBOX' } }); }
+    const tS = idx; ins(title + '\n'); styleHeading(tS, idx, 'HEADING_1');
+    const subS = idx; ins('Check off each item when confirmed or resolved before sending.\n\n');
     styleText(subS, idx, { foregroundColor: { color: { rgbColor: { red: 0.5, green: 0.5, blue: 0.5 } } }, italic: true, fontSize: { magnitude: 11, unit: 'PT' } });
-
     for (var oi = 0; oi < parsed.order.length; oi++) {
       const sectionName = parsed.order[oi];
       const items = parsed.sections[sectionName];
       if (!items || items.length === 0) continue;
-
-      const secS = idx;
-      ins(sectionName + '\n');
-      styleHeading(secS, idx, 'HEADING_2');
-
+      const secS = idx; ins(sectionName + '\n'); styleHeading(secS, idx, 'HEADING_2');
       for (var ii = 0; ii < items.length; ii++) {
         const item = items[ii];
-        const itemS = idx;
-        ins(item.text + '\n');
-        addCheckbox(itemS, idx);
-
+        const itemS = idx; ins(item.text + '\n'); addCheckbox(itemS, idx);
         if (item.note && item.note.length > 4) {
           const noteS = idx;
-          const nt = item.note.length > 200 ? item.note.substring(0, 200) + '\u2026' : item.note;
+          const nt = item.note.length > 200 ? item.note.substring(0,200) + '\u2026' : item.note;
           ins(nt + '\n');
           styleText(noteS, idx, { foregroundColor: { color: { rgbColor: { red: 0.55, green: 0.55, blue: 0.55 } } }, italic: true, fontSize: { magnitude: 10, unit: 'PT' } });
           reqs.push({ updateParagraphStyle: { range: { startIndex: noteS, endIndex: idx }, paragraphStyle: { indentFirstLine: { magnitude: 18, unit: 'PT' }, indentStart: { magnitude: 18, unit: 'PT' } }, fields: 'indentFirstLine,indentStart' } });
@@ -328,18 +289,15 @@ async function generate() {
       }
       ins('\n');
     }
-
     for (var ci = 0; ci < reqs.length; ci += 40) {
-      await apiCall('https://docs.googleapis.com/v1/documents/' + docId + ':batchUpdate', 'POST', { requests: reqs.slice(ci, ci + 40) });
-      setProgress(30 + Math.round((ci / reqs.length) * 65));
+      await apiCall('https://docs.googleapis.com/v1/documents/' + docId + ':batchUpdate', 'POST', { requests: reqs.slice(ci, ci+40) });
+      setProgress(30+Math.round((ci/reqs.length)*65));
     }
-
     setProgress(100);
     const docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
     status.className = 'status success';
     status.innerHTML = '\u2713 Checklist created!<br><a class="doc-link" href="' + docUrl + '" target="_blank">&rarr; Open Google Doc</a>';
     btn.disabled = false;
-
   } catch(err) {
     status.className = 'status error';
     status.innerHTML = '\u2717 ' + err.message;
@@ -353,14 +311,10 @@ const drop = document.getElementById('fileDrop');
 drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.classList.add('dragover'); });
 drop.addEventListener('dragleave', function() { drop.classList.remove('dragover'); });
 drop.addEventListener('drop', function(e) {
-  e.preventDefault();
-  drop.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
+  e.preventDefault(); drop.classList.remove('dragover');
+  const file = e.dataTransfer.files[0]; if (!file) return;
   document.getElementById('fileName').textContent = '\u2713 ' + file.name;
-  if (!document.getElementById('docTitle').value) {
-    document.getElementById('docTitle').value = file.name.replace('.csv','').replace(/_/g,' ') + ' \u2014 Scope Checklist';
-  }
+  if (!document.getElementById('docTitle').value) { document.getElementById('docTitle').value = file.name.replace('.csv','').replace(/_/g,' ') + ' \u2014 Scope Checklist'; }
   const reader = new FileReader();
   reader.onload = function(ev) { csvData = ev.target.result; checkReady(); };
   reader.readAsText(file);
